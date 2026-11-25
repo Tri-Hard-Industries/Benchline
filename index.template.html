@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fbfbfa">
+  <meta name="description" content="A model review platform with a GitHub-managed model catalog.">
+  <title>Benchline · Review models</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #fbfbfa;
+      --surface: #fff;
+      --ink: #1d1e1c;
+      --muted: #6d6e6b;
+      --line: #e3e4e0;
+      --soft: #f4f5f2;
+      --focus: #5b5d58;
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 14px; }
+    body { margin: 0; background: var(--background); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Arial, sans-serif; line-height: 1.45; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: default; opacity: .3; }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(1.75rem, 3vw, 2.2rem); font-weight: 590; letter-spacing: -.045em; line-height: 1.18; }
+    h2 { font-size: 1.13rem; font-weight: 620; letter-spacing: -.02em; }
+    h3 { font-size: 1rem; font-weight: 620; letter-spacing: -.01em; }
+    .page { max-width: 1280px; padding: 0 42px 68px; margin: 0 auto; }
+    .topbar { display: flex; justify-content: space-between; gap: 20px; align-items: center; min-height: 74px; border-bottom: 1px solid var(--line); }
+    .wordmark { font-size: 1.24rem; font-weight: 690; letter-spacing: -.065em; }
+    .topbar-right { display: flex; align-items: center; gap: 18px; }
+    .topbar-right { flex-wrap: wrap; justify-content: flex-end; }
+    .local-note { font-size: .83rem; color: var(--muted); white-space: nowrap; }
+    .heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; padding: 37px 0 30px; }
+    .subtitle { margin-top: 9px; color: var(--muted); font-size: .96rem; }
+    .button { background: var(--ink); border: 1px solid var(--ink); color: #fff; padding: 10px 14px; font-weight: 540; border-radius: 5px; min-height: 38px; }
+    .button:hover { background: #393a37; }
+    .button.secondary { background: var(--surface); color: var(--ink); border: 1px solid #cfd0cb; }
+    .button.secondary:hover { background: var(--soft); }
+    .button.small { padding: 6px 10px; min-height: 30px; font-size: .86rem; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.13fr) minmax(355px, .87fr); align-items: start; gap: 25px; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 7px; }
+    .table-panel { overflow: hidden; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 20px 22px; border-bottom: 1px solid var(--line); }
+    .panel-subhead { color: var(--muted); font-size: .86rem; }
+    .table-tools { display: flex; justify-content: space-between; gap: 12px; padding: 13px 20px; border-bottom: 1px solid var(--line); }
+    .search, .select, .field, .long-field, .score-input { background: var(--surface); color: var(--ink); border: 1px solid #d7d9d4; border-radius: 4px; outline: none; }
+    .search:focus, .select:focus, .field:focus, .long-field:focus, .score-input:focus { border-color: var(--focus); }
+    .search { width: min(100%, 220px); padding: 8px 10px; }
+    .select { max-width: 170px; padding: 8px 30px 8px 10px; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+    th { text-align: right; background: #fff; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .055em; font-weight: 590; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+    th:first-child { text-align: left; padding-left: 22px; }
+    td { padding: 15px 16px; text-align: right; border-bottom: 1px solid #efefec; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { text-align: left; padding-left: 22px; }
+    tr.is-selected { background: #f5f5f2; }
+    .model-name { display: block; padding: 0; color: var(--ink); font-weight: 600; border: 0; text-align: left; background: transparent; }
+    .model-name:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .model-provider { color: var(--muted); font-size: .83rem; margin-top: 2px; }
+    .score { font-weight: 560; }
+    .score.muted { color: #989a96; font-weight: 400; }
+    .score-meta { color: #949691; font-size: .74rem; }
+    .empty { min-height: 235px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; padding: 35px 18px; text-align: center; }
+    .empty p { color: var(--muted); max-width: 310px; }
+    .empty h3 { font-size: 1.02rem; }
+
+    .rating-panel { position: sticky; top: 20px; }
+    .rating-header { padding: 20px 22px 16px; border-bottom: 1px solid var(--line); }
+    .eyebrow { display: block; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 7px; }
+    .rating-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .rating-title { font-size: 1.34rem; letter-spacing: -.035em; font-weight: 625; word-break: break-word; }
+    .rating-summary { font-variant-numeric: tabular-nums; font-size: 1.2rem; font-weight: 630; }
+    .rating-summary small { color: var(--muted); font-size: .75rem; font-weight: 400; }
+    .rating-meta { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: var(--muted); font-size: .83rem; }
+    .link-button { appearance: none; border: 0; padding: 0; background: transparent; color: var(--muted); text-decoration: underline; text-decoration-color: #c9c9c4; text-underline-offset: 3px; }
+    .link-button:hover { color: var(--ink); text-decoration-color: var(--ink); }
+    .rating-body { padding: 0 22px 22px; }
+    .rating-group { padding: 20px 0 18px; border-bottom: 1px solid var(--line); }
+    .rating-group:last-of-type { border-bottom: 0; }
+    .rating-group-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .rating-group-subtitle { margin-top: 4px; font-size: .82rem; color: var(--muted); }
+    .criterion-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; }
+    .criterion-name { font-weight: 550; }
+    .criterion-description { color: var(--muted); font-size: .81rem; line-height: 1.35; margin-top: 2px; }
+    .score-input { width: 70px; height: 36px; flex: none; padding: 6px 7px; text-align: center; font-variant-numeric: tabular-nums; }
+    .rating-notes { padding-top: 15px; }
+    .review-actions { display:flex; align-items:center; flex-wrap:wrap; gap:13px; margin-top:17px; }
+    .review-state { color:var(--muted); font-size:.84rem; }
+    .feedback { font-size:.86rem; margin-top:10px; }
+    .feedback.error { color:#8a2727; }
+    .rating-group-title .score { font-variant-numeric:tabular-nums; }
+    .field-label { display: block; color: var(--muted); font-size: .83rem; font-weight: 530; margin-bottom: 7px; }
+    .long-field { display: block; width: 100%; padding: 9px 10px; resize: vertical; min-height: 77px; }
+    .scale-note { color: var(--muted); font-size: .79rem; margin-top: 12px; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+    [hidden] { display: none !important; }
+
+
+
+
+
+    .footnote { font-size: .82rem; color: var(--muted); margin: 24px 0 0; }
+    @media (max-width: 920px) {
+      .page { padding: 0 22px 50px; }
+      .workspace { grid-template-columns: minmax(0, 1fr); }
+      .rating-panel { position: static; }
+    }
+    @media (max-width: 560px) {
+      .page { padding: 0 16px 42px; }
+      .topbar { min-height: 65px; }
+      .topbar-right { gap: 11px; }
+      .local-note { display: none; }
+      .heading { align-items: start; padding: 29px 0 23px; }
+      .heading .button { flex: none; }
+      .table-tools { flex-wrap: wrap; }
+      .search { flex: 1; }
+      .criterion-edit { grid-template-columns: 1fr; }
+      .criterion-edit .inline-controls { justify-self: end; }
+      .rubric-card { padding: 15px; }
+      .rubric-add { flex-wrap: wrap; }
+      .rubric-card-head { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="wordmark">benchline.</div>
+      <div class="topbar-right">
+        <span class="local-note">Model catalog managed on GitHub</span>
+      </div>
+    </header>
+    <main>
+      <section id="leaderboard-view">
+        <div class="heading">
+          <div>
+            <h1>Model ratings</h1>
+            <p class="subtitle">Select a model and submit your review.</p>
+          </div>
+
+        </div>
+        <div class="workspace">
+          <section class="panel table-panel" aria-label="Model leaderboard">
+            <div class="panel-header">
+              <h2>Models</h2>
+              <span class="panel-subhead" id="model-count">0 models</span>
+            </div>
+            <div class="table-tools">
+              <input class="search" id="search" aria-label="Search models" placeholder="Search models" autocomplete="off">
+              <select class="select" id="sort" aria-label="Sort models"></select>
+            </div>
+            <div id="leaderboard-table"></div>
+          </section>
+          <section class="panel rating-panel" id="rating-editor" aria-label="Model rating editor"></section>
+        </div>
+        <p class="footnote">Scores range from 0 to 10. Blank criteria do not affect averages. Reviews are currently saved only in your browser. Public review collection requires a backend.</p>
+      </section>
+    </main>
+  </div>
+
+  <script id="fixed-rubric" type="application/json">
+[
+  {
+    "id": "research",
+    "name": "Research",
+    "description": "Criteria not yet defined.",
+    "criteria": [
+      {
+        "id": "id_mwvxyfyv_e4djvgf",
+        "name": "References",
+        "description": "Ability to cite real and relevant references"
+      },
+      {
+        "id": "id_mwvy5mkg_l6qr0z4",
+        "name": "Bridge",
+        "description": "Ability to bridge arguments even if notation/setup is not the same"
+      }
+    ]
+  },
+  {
+    "id": "id_mwvxxgct_4p0nzc1",
+    "name": "Mathematics",
+    "description": "",
+    "criteria": [
+      {
+        "id": "id_mwvxxn19_cy5vgyg",
+        "name": "Correctness",
+        "description": "Are the arguments correct"
+      },
+      {
+        "id": "id_mwvxxqqp_tpsr7st",
+        "name": "Clarity",
+        "description": "Are the arguments clear"
+      },
+      {
+        "id": "id_mwvxxv2p_ws4d584",
+        "name": "Reasoning",
+        "description": "Are the arguments well established"
+      },
+      {
+        "id": "id_mwvy3f6u_0d01601",
+        "name": "Overcomplication",
+        "description": "Are arguments more complicated then needed"
+      }
+    ]
+  },
+  {
+    "id": "id_mwvy1emf_8oala12",
+    "name": "Programming",
+    "description": "",
+    "criteria": [
+      {
+        "id": "id_mwvy1lny_zq1zfbp",
+        "name": "Correctness",
+        "description": "Does it do what it supposed to"
+      },
+      {
+        "id": "id_mwvy1obw_tjtgf7b",
+        "name": "Clarity",
+        "description": "Is it clear"
+      },
+      {
+        "id": "id_mwvy1tq3_n2au3d3",
+        "name": "Reasoning",
+        "description": "Is it well build"
+      },
+      {
+        "id": "id_mwvy39yy_qrwtub2",
+        "name": "Overcomplication",
+        "description": "Is it unnecessarily complicated"
+      }
+    ]
+  }
+]
+  </script>
+  <script>
+/*__APP_JS__*/
+  </script>
+</body>
+</html>
